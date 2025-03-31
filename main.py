@@ -1,0 +1,334 @@
+from flask import Flask, jsonify, render_template, send_file, abort,session, request, flash, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, current_user, login_user, logout_user, UserMixin, login_required
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import date,timedelta,datetime
+import pandas as pd
+import os
+import matplotlib.pyplot as plt
+import io
+import numpy as np
+import requests
+from bs4 import BeautifulSoup
+
+app = Flask(__name__)
+app.secret_key = 'your_unique_secret_key_here'
+login_manager = LoginManager()
+login_manager.session_protection = "strong"
+login_manager.init_app(app)
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///shop.db"
+db = SQLAlchemy(app)
+
+class User(UserMixin, db.Model):
+    __tablename__ = 'user'
+    user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.String, unique=True, nullable=False)
+    password = db.Column(db.String, nullable=False)
+
+    def get_id(self):
+        return self.user_id
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+class Purchase(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)
+    item_name = db.Column(db.String, nullable=False)
+    qty = db.Column(db.Integer, default=0)
+    price = db.Column(db.Float, nullable=False)
+    category = db.Column(db.String, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+
+with app.app_context():
+    db.create_all()
+
+@app.get("/")
+def get():
+    if current_user.is_authenticated:
+        return redirect(url_for('personal_area'))
+    return render_template("index.html")
+
+@app.route("/Register", methods=["GET", "POST"])
+def register():
+    if request.method == "GET":
+        return render_template("Register.html",user=None)
+    else:
+        email = request.form['email']
+        password = request.form['password']
+
+        if not email or not password:
+            error_message = "אנא הכנס אימייל וסיסמא בכדי להרשם"
+            return render_template("Register.html", user=None, error_message=error_message)
+
+        hashed_password = generate_password_hash(password)
+        new_user = User(email=email, password=hashed_password)
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            return render_template("Login.html",user=existing_user,existing_user_message="משתמש כבר קיים במערכת")
+        else:
+            db.session.add(new_user)
+            db.session.commit()
+            login_user(new_user)
+            return render_template('Personal_area.html', user=new_user, purchases=[])
+
+@app.route("/Login", methods=["GET", "POST"])
+def Login():
+    if request.method == "GET":
+        return render_template("Login.html",user=None)
+    else:
+        email = request.form['email']
+        password = request.form['password']
+        if not email or not password:
+            error_message = "אנא הכנס אימייל וסיסמא בכדי שתוכל להתחבר"
+            return render_template("Login.html", user=None, existing_user_message=error_message)
+
+        user = User.query.filter_by(email=email).first()
+        if user:
+                if check_password_hash(user.password, password):
+                    login_user(user)
+                    purchases = Purchase.query.filter_by(user_id=user.user_id).all()
+                    return render_template("Personal_area.html", user=user, purchases=purchases)
+                else:
+                    error_message = "סיסמא לא נכונה"
+                    return render_template("Login.html", user=None, existing_user_message=error_message)
+        else:
+                return render_template("Register.html", user=None, error_message="עדיין לא נרשמת למערכת")
+
+@app.route("/personal_area")
+def personal_area():
+        if current_user.is_authenticated:
+            user_id = current_user.user_id
+            one_week_ago = datetime.now() - timedelta(weeks=1)
+            purchases = Purchase.query.filter(Purchase.user_id == user_id, Purchase.date >= one_week_ago).all()
+            return render_template("personal_area.html", purchases=purchases, user=current_user)
+        else:
+            return render_template("Login.html", user=current_user)
+
+@app.route("/add_purchase", methods=["GET", "POST"])
+@login_required
+def add_purchase():
+    if request.method == "GET":
+        return render_template("Add_purchase.html", user=current_user)
+    else:
+        if current_user.is_authenticated:
+            item_name = request.form['item_name']
+            qty = request.form['qty']
+            price = request.form['price']
+            category = request.form['category']
+            error_messages = []
+            if not item_name:
+                error_messages.append("אנא הכנס שם פריט")
+            if not qty:
+                error_messages.append("אנא הכנס כמות")
+            if not price:
+                error_messages.append("אנא הכנס מחיר")
+            if not category:
+                error_messages.append("אנא הכנס קטגוריה")
+
+            if error_messages:
+                return render_template("Add_purchase.html", user=current_user, error_messages=error_messages)
+
+            new_purchase = Purchase(user_id=current_user.user_id, item_name=item_name, qty=int(qty), price=float(price), category=category,     date=datetime.now())
+            db.session.add(new_purchase)
+            db.session.commit()
+            one_week_ago = datetime.now() - timedelta(weeks=1)
+            purchases = Purchase.query.filter(Purchase.user_id == current_user.user_id,Purchase.date >= one_week_ago).all()
+            return redirect(url_for('personal_area'))
+        else:
+            return render_template("Register.html", user=None)
+
+
+@app.route("/profile/getMore", methods=["GET"])
+def get_more_purchases():
+    user_id = current_user.user_id
+    more_purchases = Purchase.query.filter(Purchase.user_id == user_id).all()
+    return render_template("Personal_area.html", purchases=more_purchases)
+
+@app.route("/saveData", methods=["GET"])
+@login_required
+def save_data():
+    if not current_user.is_authenticated:
+        abort(403)
+
+    user_id = current_user.user_id
+    purchases = Purchase.query.filter_by(user_id=user_id).all()
+    data = [{
+        'item_name': purchase.item_name,
+        'qty': purchase.qty,
+        'price': purchase.price,
+        'category': purchase.category,
+        'date': purchase.date
+    } for purchase in purchases]
+
+    df = pd.DataFrame(data)
+
+    backup_directory = 'C:\\Users\\User\\Desktop\\python project'
+    file_path = os.path.join(backup_directory, f'backup_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv')
+    df.to_csv(file_path, index=False)
+    return redirect(url_for('personal_area'))
+
+
+@app.route("/downloadData", methods=["GET"])
+def download_data():
+    backup_directory = 'C:\\Users\\User\\Desktop\\python project'
+    csv_files = [f for f in os.listdir(backup_directory) if f.endswith('.csv')]
+
+    if not csv_files:
+        abort(404)
+
+    latest_file = max(csv_files, key=lambda f: os.path.getctime(os.path.join(backup_directory, f)))
+
+    return send_file(os.path.join(backup_directory, latest_file), as_attachment=True)
+
+
+@app.route("/graph1")
+@login_required
+def graph1():
+    user_id = current_user.user_id
+    purchases = Purchase.query.filter_by(user_id=user_id).all()
+
+    df = pd.DataFrame([{
+        'date': purchase.date,
+        'price': purchase.price
+    } for purchase in purchases])
+
+    df.dropna(subset=['price'], inplace=True)
+    df.set_index('date', inplace=True)
+    weekly_expenses = df.resample('W').sum()
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(weekly_expenses.index, weekly_expenses['price'], marker='o')
+    plt.title('Total expenses each week')
+    plt.xlabel('date')
+    plt.ylabel('expenses')
+    plt.grid()
+
+    img_path = os.path.join('static', 'graphs', f'weekly_expenses_{user_id}.png')
+    plt.savefig(img_path)
+    plt.close()
+
+    return redirect(url_for('show_graphs', graph1=f'weekly_expenses_{user_id}.png'))
+
+@app.route("/graph2")
+@login_required
+def graph2():
+    user_id = current_user.user_id
+    purchases = Purchase.query.filter_by(user_id=user_id).all()
+
+    df = pd.DataFrame([{
+        'date': purchase.date,
+        'price': purchase.price,
+        'category': purchase.category
+    } for purchase in purchases])
+
+    df.dropna(subset=['price'], inplace=True)
+
+    df['date'] = pd.to_datetime(df['date'])
+    df['month'] = df['date'].dt.to_period('M')
+    monthly_expenses = df.groupby('month')['price'].sum()
+
+    plt.figure(figsize=(10, 5))
+    monthly_expenses.plot(kind='bar')
+    plt.title('Monthly Expenses Comparison')
+    plt.xlabel('Month')
+    plt.ylabel('Total Expenses')
+    plt.grid()
+
+    img_path = os.path.join('static', 'graphs', f'monthly_expenses_{user_id}.png')
+    plt.savefig(img_path)
+    plt.close()
+
+    return redirect(url_for('show_graphs', graph2=f'monthly_expenses_{user_id}.png'))
+
+@app.route("/graphs")
+@login_required
+def show_graphs():
+    graph1 = request.args.get('graph1')
+    graph2 = request.args.get('graph2')
+    return render_template('graphs.html', graph1=graph1, graph2=graph2)
+
+def create_graph1(data):
+    plt.figure(figsize=(10, 5))
+    plt.plot(data['Date'], data['Price'], marker='o')
+    plt.title('Purchases Over Time')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.grid()
+    graph_path = os.path.join('static', 'graphs', 'demo_graph1.png')
+    plt.savefig(graph_path)
+    plt.close()
+    return graph_path
+
+def create_graph2(data):
+    plt.figure(figsize=(10, 5))
+    data.groupby('Name')['Price'].sum().plot(kind='bar')
+    plt.title('Total Price per Item')
+    plt.xlabel('Item')
+    plt.ylabel('Total Price')
+    plt.grid()
+    graph_path = os.path.join('static', 'graphs', 'demo_graph2.png')
+    plt.savefig(graph_path)
+    plt.close()
+    return graph_path
+
+@app.route("/demoProfile", methods=["GET"])
+def demo_profile():
+    if current_user.is_authenticated:
+        return redirect(url_for('personal_area'))
+    else:
+        np.random.seed(0)
+        purchase_codes = np.arange(1, 11)
+        purchase_names = [f'Item {i}' for i in purchase_codes]
+        purchase_prices = np.round(np.random.uniform(1, 100, size=10), 2)
+        purchase_dates = [(datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(10)]
+
+        df = pd.DataFrame({
+            'Code': purchase_codes,
+            'Name': purchase_names,
+            'Price': purchase_prices,
+            'Date': purchase_dates
+        })
+        last_week = datetime.now() - timedelta(days=7)
+        df['Date'] = pd.to_datetime(df['Date'])
+        recent_purchases = df[df['Date'] >= last_week]
+
+        graph1_path = create_graph1(df)
+        graph2_path = create_graph2(df)
+
+        return render_template('Demo_profile.html', df=recent_purchases, graph1=graph1_path, graph2=graph2_path)
+
+@app.route("/optimize_purchases", methods=["GET"])
+@login_required
+def optimize_purchases():
+    user_id = current_user.user_id
+    purchases = Purchase.query.filter_by(user_id=user_id).all()
+
+    with open('templates/Shop.html', 'r',encoding='utf-8') as htmlFile:
+        content = htmlFile.read()
+        soup = BeautifulSoup(content, 'html.parser')
+
+    products = {}
+    for product in soup.findAll('div'):
+        name = product.find('h3').text.strip()
+        price = float(product.find('p').text.strip().replace(' ש"ח', '').replace(',', '.'))  # המרת מחיר ל-float
+        products[name] = price
+
+    optimized_purchases=[]
+    for purchase in purchases:
+        item_name=purchase.item_name
+        price=purchase.price
+        if item_name in products:
+            shop_price = products[item_name]
+            if shop_price < price:
+                optimized_purchases.append({
+                    'item_name': item_name,
+                    'price_paid': price,
+                    'shop_price': shop_price
+                })
+    return render_template("Optimized_purchases.html", optimized_purchases=optimized_purchases)
+
+if __name__ == "__main__":
+    print(os.getcwd())
+    app.run(debug=True)

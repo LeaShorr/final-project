@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<link rel="stylesheet" href="../static/css/index.css">
+
+    {% block head %}
+
+    {% endblock %}
+</head>
+<body>
+  <p>!אפליקציית הקניות שלי</p>
+  <nav>
+               <a href="/Register">הרשם</a>
+               <a href="/Login">התחבר</a>
+         <a href="/personal_area">איזור אישי</a>
+  </nav>
+
+   {% block body%}
+  <br>
+  <br>
+<img src="../static/images/picture.png" alt="תיאור התמונה">
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Demo profile</title>
+    <link rel="stylesheet" href="../static/css/index.css">
+
+</head>
+<body>
+ <h1>רשימת רכישות</h1>
+    <table border="1">
+        <tr>
+            <th>קוד</th>
+            <th>שם</th>
+            <th>מחיר</th>
+            <th>תאריך</th>
+        </tr>
+        {% for index, row in df.iterrows() %}
+        <tr>
+            <td>{{ row['Code'] }}</td>
+            <td>{{ row['Name'] }}</td>
+            <td>{{ row['Price'] }}</td>
+            <td>{{ row['Date'] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <h2>גרף 1</h2>
+    <img src="{{ url_for('static', filename='graphs/demo_graph1.png') }}" alt="Graph 1">
+
+    <h2>גרף 2</h2>
+    <img src="{{ url_for('static', filename='graphs/demo_graph2.png') }}" alt="Graph 2">
+    <button  onclick="window.location.href='/Register'">חזרה לדף ההרשמה</button>
+
+</body>
+</html>
