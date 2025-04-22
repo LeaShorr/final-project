@@ -11,6 +11,11 @@ import numpy as np
 import requests
 from bs4 import BeautifulSoup
 
+backup_directory = 'C:\\Users\\User\\Desktop\\python project'
+
+if not os.path.exists(backup_directory):
+    os.makedirs(backup_directory)
+
 app = Flask(__name__)
 app.secret_key = 'your_unique_secret_key_here'
 login_manager = LoginManager()
@@ -44,10 +49,10 @@ class Purchase(db.Model):
 with app.app_context():
     db.create_all()
 
-@app.get("/")
+@app.route("/")
 def get():
     if current_user.is_authenticated:
-        logout_user()
+        logout_user()  # התנתק את המשתמש
     return render_template("index.html")
 
 @app.route("/Register", methods=["GET", "POST"])
@@ -74,7 +79,7 @@ def register():
             return render_template('Personal_area.html', user=new_user, purchases=[])
 
 @app.route("/Login", methods=["GET", "POST"])
-def Login():
+def login():
     if request.method == "GET":
         return render_template("Login.html",user=None)
     else:
@@ -96,7 +101,7 @@ def Login():
         else:
                 return render_template("Register.html", user=None, error_message="עדיין לא נרשמת למערכת")
 
-@app.route("/Personal_area")
+@app.route("/personal_area")
 def personal_area():
         print(f"Is user authenticated: {current_user.is_authenticated}")  # הדפס את מצב ההתחברות
         if current_user.is_authenticated:
@@ -107,7 +112,7 @@ def personal_area():
         else:
             return render_template("Login.html", user=current_user)
 
-@app.route("/Add_purchase", methods=["GET", "POST"])
+@app.route("/add_purchase", methods=["GET", "POST"])
 @login_required
 def add_purchase():
     if request.method == "GET":
@@ -136,7 +141,7 @@ def add_purchase():
             db.session.commit()
             one_week_ago = datetime.now() - timedelta(weeks=1)
             purchases = Purchase.query.filter(Purchase.user_id == current_user.user_id,Purchase.date >= one_week_ago).all()
-            return redirect(url_for('Personal_area'))
+            return redirect(url_for('personal_area'))
         else:
             return render_template("Register.html", user=None)
 
@@ -274,7 +279,7 @@ def create_graph2(data):
     plt.close()
     return graph_path
 
-@app.route("/Demo_profile", methods=["GET"])
+@app.route("/demoProfile", methods=["GET"])
 def demo_profile():
     if current_user.is_authenticated:
         return redirect(url_for('personal_area'))
@@ -300,7 +305,7 @@ def demo_profile():
 
         return render_template('Demo_profile.html', df=recent_purchases, graph1=graph1_path, graph2=graph2_path)
 
-@app.route("/Optimize_purchases", methods=["GET"])
+@app.route("/optimize_purchases", methods=["GET"])
 @login_required
 def optimize_purchases():
     user_id = current_user.user_id
