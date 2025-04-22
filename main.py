@@ -47,7 +47,7 @@ with app.app_context():
 @app.get("/")
 def get():
     if current_user.is_authenticated:
-        return redirect(url_for('personal_area'))
+        return render_template('personal_area')
     return render_template("index.html")
 
 @app.route("/Register", methods=["GET", "POST"])
