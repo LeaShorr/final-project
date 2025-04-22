@@ -281,29 +281,46 @@ def create_graph2(data):
 
 @app.route("/demoProfile", methods=["GET"])
 def demo_profile():
-    if current_user.is_authenticated:
-        return redirect(url_for('personal_area'))
-    else:
-        np.random.seed(0)
-        purchase_codes = np.arange(1, 11)
-        purchase_names = [f'Item {i}' for i in purchase_codes]
-        purchase_prices = np.round(np.random.uniform(1, 100, size=10), 2)
-        purchase_dates = [(datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(10)]
+    # נתונים קבועים עם numpy
+    purchase_codes = np.array([1, 2, 3, 4, 5])
+    purchase_names = np.array(['לחם', 'חלב', 'ביצים', 'סוכר', 'קפה'])
+    purchase_prices = np.array([6.5, 6.8, 35, 4.7, 32.9])
+    purchase_dates = np.array(['2025-02-01', '2025-04-22', '2025-03-03', '2025-04-18', '2025-01-05'])
 
-        df = pd.DataFrame({
-            'Code': purchase_codes,
-            'Name': purchase_names,
-            'Price': purchase_prices,
-            'Date': purchase_dates
-        })
-        last_week = datetime.now() - timedelta(days=7)
-        df['Date'] = pd.to_datetime(df['Date'])
-        recent_purchases = df[df['Date'] >= last_week]
+    # יצירת רשימה של רכישות
+    purchases = [{'Code': code, 'Name': name, 'Price': price, 'Date': date}
+                 for code, name, price, date in zip(purchase_codes, purchase_names, purchase_prices, purchase_dates)]
 
-        graph1_path = create_graph1(df)
-        graph2_path = create_graph2(df)
+    # המרת הרשימה ל-DataFrame
+    df = pd.DataFrame(purchases)
 
-        return render_template('Demo_profile.html', df=recent_purchases, graph1=graph1_path, graph2=graph2_path)
+    # פילטור רכישות של השבוע האחרון
+    last_week = datetime.now() - timedelta(days=7)
+    df['Date'] = pd.to_datetime(df['Date'])
+    recent_purchases = df[df['Date'] >= last_week]
+
+    # החזרת הטמפלייט עם הנתונים
+    return render_template('Demo_profile.html', df=recent_purchases)
+
+@app.route("/demoProfile/getMore", methods=["GET"])
+def get_more_purchases_Demo():
+    # נתונים קבועים עם numpy
+    purchase_codes = np.array([1, 2, 3, 4, 5])
+    purchase_names = np.array(['לחם', 'חלב', 'ביצים', 'סוכר', 'קפה'])
+    purchase_prices = np.array([6.5, 6.8, 35, 4.7, 32.9])
+    purchase_dates = np.array(['2025-02-01', '2025-04-22', '2025-03-03', '2025-04-18', '2025-01-05'])
+
+    # יצירת רשימה של רכישות
+    purchases = [{'Code': code, 'Name': name, 'Price': price, 'Date': date}
+                 for code, name, price, date in zip(purchase_codes, purchase_names, purchase_prices, purchase_dates)]
+
+    # המרת הרשימה ל-DataFrame
+    df = pd.DataFrame(purchases)
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    # החזרת הטמפלייט עם הנתונים
+    return render_template('Demo_profile.html', df=df)
+
 
 @app.route("/optimize_purchases", methods=["GET"])
 @login_required

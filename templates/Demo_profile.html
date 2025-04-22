@@ -1,14 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Demo profile</title>
-    <link rel="stylesheet" href="../static/css/index.css">
+{% extends 'index.html' %}
 
-</head>
-<body>
- <h1>רשימת רכישות</h1>
-    <table border="1">
+{% block head %}
+    <title>Personal area</title>
+ <style>
+        .diagonal-text {
+            position: absolute; /* מאפשר מיקום חופשי */
+            top: 50%; /* מיקום אנכי */
+            left: 50%; /* מיקום אופקי */
+            transform: translate(-50%, -50%) rotate(-45deg); /* מיקום במרכז עם סיבוב */
+            font-size: 110px; /* גודל הפונט */
+            color: rgba(0, 0, 0, 0.5); /* צבע עם שקיפות */
+            pointer-events: none; /* לא להפריע לאירועים אחרים */
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+  <h2>!!שלום</h2>
+  <h1>הקניות שלך</h1>
+  {% if df.shape[0] > 0 %}
+       <table border="1">
         <tr>
             <th>קוד</th>
             <th>שם</th>
@@ -20,16 +31,26 @@
             <td>{{ row['Code'] }}</td>
             <td>{{ row['Name'] }}</td>
             <td>{{ row['Price'] }}</td>
-            <td>{{ row['Date'] }}</td>
+            <td>{{ row['Date'].strftime('%Y-%m-%d') }}</td>
         </tr>
         {% endfor %}
     </table>
-    <h2>גרף 1</h2>
-    <img src="{{ url_for('static', filename='graphs/demo_graph1.png') }}" alt="Graph 1">
-
-    <h2>גרף 2</h2>
-    <img src="{{ url_for('static', filename='graphs/demo_graph2.png') }}" alt="Graph 2">
-    <button  onclick="window.location.href='/Register'">חזרה לדף ההרשמה</button>
-
-</body>
-</html>
+    {% else %}
+        <p>!אין קניות להציג</p>
+    {% endif %}
+<br>
+<br>
+<form class="personal_area_class" action="" method="get">
+<div class="diagonal-text">דוגמא בלבד</div>
+    <button formaction="/Register">הוסף קניה</button>
+    <button formaction="/demoProfile/getMore">להצגת כל הקניות שלך לחץ כאן</button>
+    <button formaction="/Register">גיבוי נתונים</button>
+    <button formaction="/Register">הורד את הקובץ</button>
+    <button formaction="/Register">כדי לראות את סך ההוצאות שלך בכל שבוע בשנה האחרונה לחץ כאן</button>
+    <button formaction="/Register">כדי לראות את ממוצע ההוצאות בחודש זה לעומת חודשים קודמים לחץ כאן</button>
+    <button formaction="/Register">ליעול קניות לחץ כאן</button>
+</form>
+    {% if request.args.get('graph') %}
+        <img src="{{ url_for('static', filename='graphs/' + request.args.get('graph').split('/')[-1]) }}" alt="Monthly Expenses Comparison">
+    {% endif %}
+{% endblock %}
