@@ -101,6 +101,12 @@ def login():
         else:
                 return render_template("Register.html", user=None, error_message="עדיין לא נרשמת למערכת")
 
+@app.route("/logout")
+def logout():
+    if current_user.is_authenticated:
+        logout_user()  # התנתק את המשתמש
+    return redirect(url_for('get'))  # חזור לדף הבית
+
 @app.route("/personal_area")
 def personal_area():
         print(f"Is user authenticated: {current_user.is_authenticated}")  # הדפס את מצב ההתחברות
@@ -136,7 +142,7 @@ def add_purchase():
             if error_messages:
                 return render_template("Add_purchase.html", user=current_user, error_messages=error_messages)
 
-            new_purchase = Purchase(user_id=current_user.user_id, item_name=item_name, qty=int(qty), price=float(price), category=category,     date=datetime.now())
+            new_purchase = Purchase(user_id=current_user.user_id, item_name=item_name, qty=int(qty), price=float(price), category=category, date=datetime.now())
             db.session.add(new_purchase)
             db.session.commit()
             one_week_ago = datetime.now() - timedelta(weeks=1)
@@ -145,6 +151,38 @@ def add_purchase():
         else:
             return render_template("Register.html", user=None)
 
+@app.route("/delete_purchase/<int:purchase_id>", methods=["POST"])
+@login_required
+def delete_purchase(purchase_id):
+    purchase = Purchase.query.get(purchase_id)
+    if purchase and purchase.user_id == current_user.user_id:
+        db.session.delete(purchase)
+        db.session.commit()
+    return redirect(url_for('get_more_purchases'))
+
+@app.route("/edit_purchase/<int:purchase_id>", methods=["GET", "POST"])
+@login_required
+def edit_purchase(purchase_id):
+    purchase = Purchase.query.get(purchase_id)
+    if purchase is None or purchase.user_id != current_user.user_id:
+        abort(404)
+
+    if request.method == "POST":
+        item_name = request.form['item_name']
+        qty = request.form['qty']
+        price = request.form['price']
+        category = request.form['category']
+
+        # עדכון המידע
+        purchase.item_name = item_name
+        purchase.qty = int(qty)
+        purchase.price = float(price)
+        purchase.category = category
+        db.session.commit()
+
+        return redirect(url_for('get_more_purchases'))
+
+    return render_template("Edit_purchase.html", purchase=purchase)
 
 @app.route("/profile/getMore", methods=["GET"])
 def get_more_purchases():
@@ -316,6 +354,9 @@ def get_more_purchases_Demo():
 
     # המרת הרשימה ל-DataFrame
     df = pd.DataFrame(purchases)
+    if df.empty:
+        return render_template('Demo_profile.html', df=df)  # זה יגרום להציג "אין קניות להציג"
+
     df['Date'] = pd.to_datetime(df['Date'])
 
     # החזרת הטמפלייט עם הנתונים

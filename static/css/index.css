@@ -8,24 +8,41 @@ body {
 }
 
 h1 {
-font:220px
-    color:  #5cb85c;
-
+    font-size:40px;
+    color:  #912250;
 }
+h2 {
+    font-size:35px;
+    color:  #912250;
+}
+
 table{
   margin: 0 auto;
     border-collapse: collapse;
 
 }
 
-form {
+.formRL {
     background: white;
     padding: 20px;
     border-radius: 5px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    border: 2px solid #FF7F27;
+    border: 2px solid #912250;
     width: 350px;
-    height: 400px;
+    height: 220px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.formAP{
+ background: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: 2px solid #912250;
+    width: 350px;
+    height: 350px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -50,6 +67,7 @@ label {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
+    color:#912250;
 }
 
 input[type="text"],
@@ -63,27 +81,62 @@ input[type="password"] {
     border-radius: 4px;
 }
 
-button {
-    background-color: #5cb85c;
-    color: white;
-    padding: 10px 15px;
-    border: none;
+
+.btnAddRL{
+   flex: 1 1 calc(33% - 10px); /* שלושה כפתורים בשורה */
+    max-width: 180px;
+    text-align: center;
+    padding: 5px;
+    margin: 5px;
+    border: 1px solid #fff;
     border-radius: 4px;
+    background: #912250; /* רקע לבן */
+    color:#fff;
+    font-size: 16px;
+    font-weight: bold;
     cursor: pointer;
-    margin: 10px 0 ;
-    display: block;
+}
+.button-container {
+    display: flex; /* הופך את המיכל לגמיש */
+            flex-wrap: wrap; /* מאפשר שבירת שורות */
+            justify-content: space-between; /* מפזר כפתורים על הרוחב */
+            gap: 10px; /* רווח בין כפתורים */
+            width: 100%; /* תופס את כל רוחב העמוד */
 }
 
-button:hover {
-    background-color: #4cae4c;
+/* עיצוב עבור שלושת הכפתורים העליונים */
+button.top-buttons {
+    flex: 1 1 calc(33% - 10px); /* שלושה כפתורים בשורה */
+    max-width: 180px;
+    text-align: center;
+    padding: 10px;
+    margin: 5px;
+    border: 1px solid #912250;
+    border-radius: 4px;
+    background: #fff; /* רקע לבן */
+    color:#912250;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
 }
+
+button.top-buttons:hover {
+    background: #f2f2f2;
+    color:#912250;
+}
+
 nav {
-background-color: #FF7F27;
+display: flex;
+justify-content: space-evenly;
+background-color: #912250;
 padding: 10px;
 text-align: center;
+margin-bottom: 30px; /* רווח מתחת ל-Navbar */
+
 }
 
 nav a {
+flex: 1; /* כל לינק יקבל רוחב שווה */
 color: white;
 text-decoration: none;
 margin: 0 15px;
@@ -91,8 +144,14 @@ padding: 10px 15px;
 }
 
 nav a:hover {
-background-color: #575757;
+background-color: #595959 ;
 border-radius: 5px;
+}
+
+.home{
+background-color:white;
+margin: 0 auto;
+width:50%
 }
 
 ul{
@@ -100,20 +159,61 @@ ul{
     text-align: right;
 }
 img {
-    width: 580px;
-    height: 480px;
+    width: 480px;
+    height: 380px;
 }
 p{
-  font-size:50px
+  font-size:20px;
+  font-weight: bold;
+  color:#595959;
 }
 
- th {
-        padding: 10px;
-        text-align: left;
+table {
+    width:58%;
+    margin-bottom: 20px;
+}
+
+th, td {
+    padding: 3px; /* ריווח פנימי קטן יותר */
+    border: 3px solid #912250;
+    text-align: center;
+    font-size: 16px; /* גודל טקסט קטן יותר */
+      font-weight: bold;
+
+}
+
+th {
+    background: #912250;
+    color: white;
+    font-size: 14px; /* גודל טקסט לכותרת */
+}
+
+td {
+color:#595959;
+border: 3px solid #912250;
+    height: 30px; /* גובה נמוך יותר לתאים */
+}
+
+.DE{
+ all: unset; /* מבטל את כל עיצובי ברירת המחדל */
+    cursor: pointer;
     }
-    table {
-        border-collapse: collapse;
-    }
-    th, td {
-        border: 1px solid #ddd;
-    }
+.diagonal-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 110px;
+    color: #A3A3A3;
+    pointer-events: none;
+    z-index: -1;
+}
+.graphImg{
+    width: 480px;
+    height: 380px;
+    color:#A1A1A1;
+}
+.edit{
+text-decoration: none;
+color:#595959;
+}

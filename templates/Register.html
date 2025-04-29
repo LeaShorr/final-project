@@ -7,15 +7,18 @@
 {% block body %}
 <h1>!!הרשם כעת</h1>
 {% if error_message %}
-    <p style="color: #5cb85c;">{{ error_message }}</p>
+    <p style="color: #595959;">{{ error_message }}</p>
 {% endif %}
 
-<form action="/Register" method="POST">
+<form class="formRL" action="/Register" method="POST">
     <label>אימייל</label>
     <input id="email" name="email" type="text" value="{{ user.email }}">
     <label>סיסמא</label>
     <input id="password" name="password" type="password" value="{{ user.password }}">
-    <button>הרשם</button>
-    <button  type="button" onclick="window.location.href='/demoProfile'">הדגם לי את האפליקציה</button>
-    </form>
+    <button class="btnAddRL">הרשם</button>
+
+    {% if not current_user.is_authenticated %}
+        <button class="btnAddRL" type="button" onclick="window.location.href='/demoProfile'">הדגם לי את האפליקציה</button>
+    {% endif %}
+</form>
 {% endblock %}

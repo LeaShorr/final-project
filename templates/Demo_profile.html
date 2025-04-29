@@ -2,21 +2,19 @@
 
 {% block head %}
     <title>Personal area</title>
- <style>
-        .diagonal-text {
-            position: absolute; /* מאפשר מיקום חופשי */
-            top: 50%; /* מיקום אנכי */
-            left: 50%; /* מיקום אופקי */
-            transform: translate(-50%, -50%) rotate(-45deg); /* מיקום במרכז עם סיבוב */
-            font-size: 110px; /* גודל הפונט */
-            color: rgba(0, 0, 0, 0.5); /* צבע עם שקיפות */
-            pointer-events: none; /* לא להפריע לאירועים אחרים */
-        }
-    </style>
 {% endblock %}
 
 {% block body %}
-  <h2>!!שלום</h2>
+<div class="button-container">
+    <div class="diagonal-text">דוגמא בלבד</div>
+    <button class="top-buttons" onclick="window.location.href='/demoProfile/getMore'"> כל הקניות </button>
+    <button class="top-buttons" onclick="window.location.href='/Register'">קניות משבוע אחרון</button>
+    <button class="top-buttons" onclick="window.location.href='/Register'">גיבוי נתונים</button>
+    <button class="top-buttons" onclick="window.location.href='/Register'">הורד את הקובץ</button>
+    <button class="top-buttons" onclick="window.location.href='/Register'"> סך הוצאות בכל שבוע</button>
+    <button class="top-buttons" onclick="window.location.href='/Register'"> ממוצע הוצאות לפי חודש </button>
+    <button class="top-buttons" onclick="window.location.href='/Register'">ליעול קניות </button>
+</div>
   <h1>הקניות שלך</h1>
   {% if df.shape[0] > 0 %}
        <table border="1">
@@ -40,16 +38,7 @@
     {% endif %}
 <br>
 <br>
-<form class="personal_area_class" action="" method="get">
-<div class="diagonal-text">דוגמא בלבד</div>
-    <button formaction="/Register">הוסף קניה</button>
-    <button formaction="/demoProfile/getMore">להצגת כל הקניות שלך לחץ כאן</button>
-    <button formaction="/Register">גיבוי נתונים</button>
-    <button formaction="/Register">הורד את הקובץ</button>
-    <button formaction="/Register">כדי לראות את סך ההוצאות שלך בכל שבוע בשנה האחרונה לחץ כאן</button>
-    <button formaction="/Register">כדי לראות את ממוצע ההוצאות בחודש זה לעומת חודשים קודמים לחץ כאן</button>
-    <button formaction="/Register">ליעול קניות לחץ כאן</button>
-</form>
+
     {% if request.args.get('graph') %}
         <img src="{{ url_for('static', filename='graphs/' + request.args.get('graph').split('/')[-1]) }}" alt="Monthly Expenses Comparison">
     {% endif %}
