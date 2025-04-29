@@ -13,7 +13,7 @@
         {% endfor %}
     </div>
 {% endif %}
- <form action="/add_purchase" method="POST">
+ <form class="formAP" action="/add_purchase" method="POST">
       <label>שם פריט</label>
     <input id="item_name" name="item_name" type="text" value="{{ request.form['item_name'] }}">
     <label>כמות</label>
@@ -22,6 +22,6 @@
     <input id="price" name="price" type="text" value="{{ request.form['price'] }}">
     <label>קטגוריה</label>
     <input id="category" name="category" type="text" value="{{ request.form['category'] }}">
-    <button>הוסף</button>
+    <button class="btnAddRL">הוסף</button>
     </form>
 {%endblock%}

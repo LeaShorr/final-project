@@ -5,15 +5,16 @@
 {%endblock%}
 
 {%  block body%}
-{% if existing_user_message %}
-    <p style="color:  #5cb85c;">{{ existing_user_message }}</p>
-{% endif %}
 <h1>!!התחבר כעת</h1>
-   <form action="/Login" method="POST">
+{% if existing_user_message %}
+    <p style="color:  #595959;">{{ existing_user_message }}</p>
+{% endif %}
+
+   <form  class="formRL" action="/Login" method="POST">
        <label>אימייל</label>
         <input id="email" name="email" type="text" value="{{user.email}}">
        <label>סיסמא</label>
        <input id="password" name="password" type="password" value="{{user.password}}">
-       <button>התחבר</button>
+       <button class="btnAddRL">התחבר</button>
     </form>
 {%endblock%}

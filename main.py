@@ -11,6 +11,11 @@ import numpy as np
 import requests
 from bs4 import BeautifulSoup
 
+backup_directory = 'C:\\Users\\User\\Desktop\\python project'
+
+if not os.path.exists(backup_directory):
+    os.makedirs(backup_directory)
+
 app = Flask(__name__)
 app.secret_key = 'your_unique_secret_key_here'
 login_manager = LoginManager()
@@ -44,10 +49,10 @@ class Purchase(db.Model):
 with app.app_context():
     db.create_all()
 
-@app.get("/")
+@app.route("/")
 def get():
     if current_user.is_authenticated:
-        return redirect(url_for('personal_area'))
+        logout_user()  # התנתק את המשתמש
     return render_template("index.html")
 
 @app.route("/Register", methods=["GET", "POST"])
@@ -74,7 +79,7 @@ def register():
             return render_template('Personal_area.html', user=new_user, purchases=[])
 
 @app.route("/Login", methods=["GET", "POST"])
-def Login():
+def login():
     if request.method == "GET":
         return render_template("Login.html",user=None)
     else:
@@ -96,13 +101,20 @@ def Login():
         else:
                 return render_template("Register.html", user=None, error_message="עדיין לא נרשמת למערכת")
 
+@app.route("/logout")
+def logout():
+    if current_user.is_authenticated:
+        logout_user()  # התנתק את המשתמש
+    return redirect(url_for('get'))  # חזור לדף הבית
+
 @app.route("/personal_area")
 def personal_area():
+        print(f"Is user authenticated: {current_user.is_authenticated}")  # הדפס את מצב ההתחברות
         if current_user.is_authenticated:
             user_id = current_user.user_id
             one_week_ago = datetime.now() - timedelta(weeks=1)
             purchases = Purchase.query.filter(Purchase.user_id == user_id, Purchase.date >= one_week_ago).all()
-            return render_template("personal_area.html", purchases=purchases, user=current_user)
+            return render_template("Personal_area.html", purchases=purchases, user=current_user)
         else:
             return render_template("Login.html", user=current_user)
 
@@ -130,7 +142,7 @@ def add_purchase():
             if error_messages:
                 return render_template("Add_purchase.html", user=current_user, error_messages=error_messages)
 
-            new_purchase = Purchase(user_id=current_user.user_id, item_name=item_name, qty=int(qty), price=float(price), category=category,     date=datetime.now())
+            new_purchase = Purchase(user_id=current_user.user_id, item_name=item_name, qty=int(qty), price=float(price), category=category, date=datetime.now())
             db.session.add(new_purchase)
             db.session.commit()
             one_week_ago = datetime.now() - timedelta(weeks=1)
@@ -139,6 +151,38 @@ def add_purchase():
         else:
             return render_template("Register.html", user=None)
 
+@app.route("/delete_purchase/<int:purchase_id>", methods=["POST"])
+@login_required
+def delete_purchase(purchase_id):
+    purchase = Purchase.query.get(purchase_id)
+    if purchase and purchase.user_id == current_user.user_id:
+        db.session.delete(purchase)
+        db.session.commit()
+    return redirect(url_for('get_more_purchases'))
+
+@app.route("/edit_purchase/<int:purchase_id>", methods=["GET", "POST"])
+@login_required
+def edit_purchase(purchase_id):
+    purchase = Purchase.query.get(purchase_id)
+    if purchase is None or purchase.user_id != current_user.user_id:
+        abort(404)
+
+    if request.method == "POST":
+        item_name = request.form['item_name']
+        qty = request.form['qty']
+        price = request.form['price']
+        category = request.form['category']
+
+        # עדכון המידע
+        purchase.item_name = item_name
+        purchase.qty = int(qty)
+        purchase.price = float(price)
+        purchase.category = category
+        db.session.commit()
+
+        return redirect(url_for('get_more_purchases'))
+
+    return render_template("Edit_purchase.html", purchase=purchase)
 
 @app.route("/profile/getMore", methods=["GET"])
 def get_more_purchases():
@@ -275,29 +319,49 @@ def create_graph2(data):
 
 @app.route("/demoProfile", methods=["GET"])
 def demo_profile():
-    if current_user.is_authenticated:
-        return redirect(url_for('personal_area'))
-    else:
-        np.random.seed(0)
-        purchase_codes = np.arange(1, 11)
-        purchase_names = [f'Item {i}' for i in purchase_codes]
-        purchase_prices = np.round(np.random.uniform(1, 100, size=10), 2)
-        purchase_dates = [(datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(10)]
+    # נתונים קבועים עם numpy
+    purchase_codes = np.array([1, 2, 3, 4, 5])
+    purchase_names = np.array(['לחם', 'חלב', 'ביצים', 'סוכר', 'קפה'])
+    purchase_prices = np.array([6.5, 6.8, 35, 4.7, 32.9])
+    purchase_dates = np.array(['2025-02-01', '2025-04-22', '2025-03-03', '2025-04-18', '2025-01-05'])
 
-        df = pd.DataFrame({
-            'Code': purchase_codes,
-            'Name': purchase_names,
-            'Price': purchase_prices,
-            'Date': purchase_dates
-        })
-        last_week = datetime.now() - timedelta(days=7)
-        df['Date'] = pd.to_datetime(df['Date'])
-        recent_purchases = df[df['Date'] >= last_week]
+    # יצירת רשימה של רכישות
+    purchases = [{'Code': code, 'Name': name, 'Price': price, 'Date': date}
+                 for code, name, price, date in zip(purchase_codes, purchase_names, purchase_prices, purchase_dates)]
 
-        graph1_path = create_graph1(df)
-        graph2_path = create_graph2(df)
+    # המרת הרשימה ל-DataFrame
+    df = pd.DataFrame(purchases)
 
-        return render_template('Demo_profile.html', df=recent_purchases, graph1=graph1_path, graph2=graph2_path)
+    # פילטור רכישות של השבוע האחרון
+    last_week = datetime.now() - timedelta(days=7)
+    df['Date'] = pd.to_datetime(df['Date'])
+    recent_purchases = df[df['Date'] >= last_week]
+
+    # החזרת הטמפלייט עם הנתונים
+    return render_template('Demo_profile.html', df=recent_purchases)
+
+@app.route("/demoProfile/getMore", methods=["GET"])
+def get_more_purchases_Demo():
+    # נתונים קבועים עם numpy
+    purchase_codes = np.array([1, 2, 3, 4, 5])
+    purchase_names = np.array(['לחם', 'חלב', 'ביצים', 'סוכר', 'קפה'])
+    purchase_prices = np.array([6.5, 6.8, 35, 4.7, 32.9])
+    purchase_dates = np.array(['2025-02-01', '2025-04-22', '2025-03-03', '2025-04-18', '2025-01-05'])
+
+    # יצירת רשימה של רכישות
+    purchases = [{'Code': code, 'Name': name, 'Price': price, 'Date': date}
+                 for code, name, price, date in zip(purchase_codes, purchase_names, purchase_prices, purchase_dates)]
+
+    # המרת הרשימה ל-DataFrame
+    df = pd.DataFrame(purchases)
+    if df.empty:
+        return render_template('Demo_profile.html', df=df)  # זה יגרום להציג "אין קניות להציג"
+
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    # החזרת הטמפלייט עם הנתונים
+    return render_template('Demo_profile.html', df=df)
+
 
 @app.route("/optimize_purchases", methods=["GET"])
 @login_required
